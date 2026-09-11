@@ -29,13 +29,19 @@ export default function SeasonDetail() {
       .filter((t) => !filters.maxDistance || t.distance_km <= filters.maxDistance);
   }, [treks, tab, filters]);
 
+    const DISTRICT_ORDER = ['Kinnaur', 'Chamba', 'Spiti'];
+
   const byDistrict = useMemo(() => {
     const groups = {};
     filtered.forEach((t) => {
       groups[t.district_name] = groups[t.district_name] || [];
       groups[t.district_name].push(t);
     });
-    return groups;
+    const ordered = {};
+    DISTRICT_ORDER.forEach((d) => {
+      if (groups[d]) ordered[d] = groups[d];
+    });
+    return ordered;
   }, [filtered]);
 
   if (!season) {
