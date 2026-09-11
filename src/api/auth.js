@@ -1,70 +1,63 @@
-import { getCollection, setCollection, nextId, getSession, setSession } from './localStore';
+import { supabase } from './supabaseClient';
 
-const USERS = 'User';
+// Same function names as before (isAuthenticated, me, register, login,
+// logout, updateMe) — now backed by real Supabase Auth instead of
+// localStorage. No page or component needs to change.
 
-function findUserByEmail(email) {
-  return getCollection(USERS).find((u) => u.email === email);
+async function fetchProfile(userId) {
+  const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+  if (error) throw new Error(error.message);
+  return data;
 }
 
 export const auth = {
   async isAuthenticated() {
-    return !!getSession();
+    const { data } = await supabase.auth.getSession();
+    return !!data.session;
   },
 
   async me() {
-    const session = getSession();
-    if (!session) throw new Error('Not authenticated');
-    const user = getCollection(USERS).find((u) => u.id === session.id);
-    if (!user) throw new Error('Not authenticated');
-    return user;
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) throw new Error('Not authenticated');
+    return fetchProfile(data.user.id);
   },
 
   async register({ email, password, full_name }) {
-    if (findUserByEmail(email)) {
-      throw new Error('An account with that email already exists.');
-    }
-    const now = new Date().toISOString();
-    const user = {
-      id: nextId(),
+    const { data, error } = await supabase.auth.signUp({
       email,
-      password, // demo-only; never do this in a real backend
-      full_name: full_name || email.split('@')[0],
-      role: 'tourist',
-      requested_role: null,
-      approved: false,
-      created_date: now,
-      updated_date: now,
-    };
-    const all = getCollection(USERS);
-    all.push(user);
-    setCollection(USERS, all);
-    setSession({ id: user.id });
-    return user;
+      password,
+      options: { data: { full_name } },
+    });
+    if (error) throw new Error(error.message);
+    if (!data.user) throw new Error('Check your email to confirm your account before logging in.');
+    // The profiles row is created automatically by a database trigger.
+    return fetchProfile(data.user.id);
   },
 
   async login({ email, password }) {
-    const user = findUserByEmail(email);
-    if (!user || user.password !== password) {
-      throw new Error('Incorrect email or password.');
-    }
-    setSession({ id: user.id });
-    return user;
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw new Error(error.message);
+    return fetchProfile(data.user.id);
   },
 
   async logout() {
-    setSession(null);
+    await supabase.auth.signOut();
   },
 
   async updateMe(data) {
-    const session = getSession();
-    if (!session) throw new Error('Not authenticated');
-    // Guard: role is not self-editable, only admins can change it via User.update
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) throw new Error('Not authenticated');
+    // role / approved are intentionally not accepted here — the database
+    // trigger also blocks a user from changing their own role as a second
+    // line of defense, but we keep the client from even attempting it.
     const { role, approved, ...safe } = data;
-    const all = getCollection(USERS);
-    const idx = all.findIndex((u) => u.id === session.id);
-    if (idx === -1) throw new Error('Not authenticated');
-    all[idx] = { ...all[idx], ...safe, updated_date: new Date().toISOString() };
-    setCollection(USERS, all);
-    return all[idx];
+    const { data: updated, error } = await supabase
+      .from('profiles')
+      .update(safe)
+      .eq('id', userData.user.id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return updated;
   },
 };

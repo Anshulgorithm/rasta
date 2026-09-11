@@ -1,65 +1,73 @@
-import { getCollection, setCollection, nextId, getSession } from './localStore';
+import { supabase } from './supabaseClient';
 
-// Minimal matcher used by filter() - supports equality on top-level fields.
-function matches(record, query) {
-  return Object.entries(query).every(([key, value]) => record[key] === value);
-}
+// Maps the app's entity names to their actual Supabase table names.
+const TABLES = {
+  User: 'profiles',
+  District: 'districts',
+  Trek: 'treks',
+  Booking: 'bookings',
+};
 
-function sortRecords(records, sortKey) {
-  if (!sortKey) return records;
+// The app calls sort keys like '-created_date'; the real columns are
+// 'created_at' / 'updated_at'. Translate so no page code has to change.
+function translateSortKey(sortKey) {
+  if (!sortKey) return null;
   const desc = sortKey.startsWith('-');
-  const key = desc ? sortKey.slice(1) : sortKey;
-  const sorted = [...records].sort((a, b) => {
-    if (a[key] < b[key]) return -1;
-    if (a[key] > b[key]) return 1;
-    return 0;
-  });
-  return desc ? sorted.reverse() : sorted;
+  let key = desc ? sortKey.slice(1) : sortKey;
+  if (key === 'created_date') key = 'created_at';
+  if (key === 'updated_date') key = 'updated_at';
+  return { key, ascending: !desc };
 }
 
-// Creates an entity client with the same shape as base44.entities.<Name>
+function handle({ data, error }) {
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// Creates an entity client with the same shape the app already uses:
+// list / filter / get / create / update / delete — now backed by Supabase.
 export function createEntity(name) {
+  const table = TABLES[name];
+
   return {
     async list(sortKey = '-created_date', limit = 200) {
-      const all = getCollection(name);
-      return sortRecords(all, sortKey).slice(0, limit);
+      let query = supabase.from(table).select('*').limit(limit);
+      const sort = translateSortKey(sortKey);
+      if (sort) query = query.order(sort.key, { ascending: sort.ascending });
+      return handle(await query);
     },
-    async filter(query = {}, sortKey = '-created_date', limit = 200) {
-      const all = getCollection(name).filter((r) => matches(r, query));
-      return sortRecords(all, sortKey).slice(0, limit);
+
+    async filter(filters = {}, sortKey = '-created_date', limit = 200) {
+      let query = supabase.from(table).select('*').limit(limit);
+      Object.entries(filters).forEach(([key, value]) => {
+        query = query.eq(key, value);
+      });
+      const sort = translateSortKey(sortKey);
+      if (sort) query = query.order(sort.key, { ascending: sort.ascending });
+      return handle(await query);
     },
+
     async get(id) {
-      const all = getCollection(name);
-      const record = all.find((r) => r.id === id);
-      if (!record) throw new Error(`${name} ${id} not found`);
-      return record;
+      const { data, error } = await supabase.from(table).select('*').eq('id', id).single();
+      if (error) throw new Error(error.message);
+      return data;
     },
-    async create(data) {
-      const all = getCollection(name);
-      const session = getSession();
-      const now = new Date().toISOString();
-      const record = {
-        id: nextId(),
-        created_date: now,
-        updated_date: now,
-        created_by_id: session?.id ?? null,
-        ...data,
-      };
-      all.push(record);
-      setCollection(name, all);
-      return record;
+
+    async create(payload) {
+      const { data, error } = await supabase.from(table).insert(payload).select().single();
+      if (error) throw new Error(error.message);
+      return data;
     },
-    async update(id, data) {
-      const all = getCollection(name);
-      const idx = all.findIndex((r) => r.id === id);
-      if (idx === -1) throw new Error(`${name} ${id} not found`);
-      all[idx] = { ...all[idx], ...data, updated_date: new Date().toISOString() };
-      setCollection(name, all);
-      return all[idx];
+
+    async update(id, payload) {
+      const { data, error } = await supabase.from(table).update(payload).eq('id', id).select().single();
+      if (error) throw new Error(error.message);
+      return data;
     },
+
     async delete(id) {
-      const all = getCollection(name).filter((r) => r.id !== id);
-      setCollection(name, all);
+      const { error } = await supabase.from(table).delete().eq('id', id);
+      if (error) throw new Error(error.message);
       return true;
     },
   };
