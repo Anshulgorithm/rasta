@@ -1,0 +1,15 @@
+{
+  "name": { "type": "string", "required": true },
+  "district_name": { "type": "string", "required": true },
+  "season": { "type": "enum", "values": ["summer", "monsoon", "winter"], "required": true },
+  "status": { "type": "enum", "values": ["on-season", "off-season"], "required": true },
+  "difficulty": { "type": "enum", "values": ["easy", "moderate", "difficult"], "default": "moderate" },
+  "duration_days": { "type": "number" },
+  "distance_km": { "type": "number" },
+  "elevation_m": { "type": "number" },
+  "price": { "type": "number" },
+  "slots": { "type": "number" },
+  "description": { "type": "string" },
+  "image_url": { "type": "string" }
+  // Ownership: use the built-in created_by_id field to scope a guide's own treks.
+}

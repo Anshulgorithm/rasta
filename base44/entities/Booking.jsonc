@@ -1,0 +1,10 @@
+{
+  "trek_id": { "type": "string", "required": true },
+  "trek_name": { "type": "string", "required": true },
+  "tourist_id": { "type": "string" },
+  "tourist_name": { "type": "string" },
+  "date": { "type": "date", "required": true },
+  "group_size": { "type": "number" },
+  "status": { "type": "enum", "values": ["reserved", "paid", "cancelled"], "default": "reserved" },
+  "payment_status": { "type": "enum", "values": ["pending", "paid"], "default": "pending" }
+}

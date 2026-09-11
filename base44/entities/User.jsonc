@@ -1,0 +1,6 @@
+{
+  // Built-in entity — only these custom fields are added on top of it.
+  "role": { "type": "enum", "values": ["tourist", "guide", "admin"], "default": "tourist" },
+  "requested_role": { "type": "string", "nullable": true },
+  "approved": { "type": "boolean", "default": false }
+}

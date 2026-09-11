@@ -1,0 +1,64 @@
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  @apply bg-mist text-ink font-body antialiased;
+}
+
+/* Season gradients, applied to SeasonCard backgrounds */
+.season-gradient-summer {
+  background: linear-gradient(160deg, #E0902E 0%, #C4601F 100%);
+}
+.season-gradient-monsoon {
+  background: linear-gradient(160deg, #4A5C82 0%, #232F49 100%);
+}
+.season-gradient-winter {
+  background: linear-gradient(160deg, #C7DCEA 0%, #6F97BE 55%, #2B4F73 100%);
+}
+
+/* Subtle topographic contour-line texture overlay for season cards */
+.contour-texture {
+  position: absolute;
+  inset: 0;
+  opacity: 0.16;
+  mix-blend-mode: overlay;
+  background-image:
+    repeating-radial-gradient(circle at 20% 30%, transparent 0, transparent 10px, rgba(255,255,255,0.6) 11px, transparent 12px, transparent 26px),
+    repeating-radial-gradient(circle at 85% 75%, transparent 0, transparent 14px, rgba(255,255,255,0.5) 15px, transparent 16px, transparent 32px);
+  pointer-events: none;
+}
+
+/* Ledger-row card used for treks */
+.ledger-row {
+  border-left-width: 3px;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+::selection {
+  background: #E0902E;
+  color: #FBFAF7;
+}
+
+:focus-visible {
+  outline: 2px solid #E0902E;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
