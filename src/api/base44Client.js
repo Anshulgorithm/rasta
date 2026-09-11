@@ -9,6 +9,7 @@ export const base44 = {
     District: createEntity('District'),
     Trek: createEntity('Trek'),
     Booking: createEntity('Booking'),
+    TrekMedia: createEntity('TrekMedia'),
   },
   auth,
 };

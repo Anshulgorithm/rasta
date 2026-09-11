@@ -6,6 +6,7 @@ const TABLES = {
   District: 'districts',
   Trek: 'treks',
   Booking: 'bookings',
+  TrekMedia: 'trek_media',
 };
 
 // The app calls sort keys like '-created_date'; the real columns are

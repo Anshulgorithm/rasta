@@ -9,6 +9,7 @@ export default function TrekDetail() {
   const navigate = useNavigate();
   const { user, loading: userLoading } = useUser();
   const [trek, setTrek] = useState(null);
+  const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [date, setDate] = useState('');
   const [groupSize, setGroupSize] = useState(1);
@@ -21,6 +22,10 @@ export default function TrekDetail() {
       .then(setTrek)
       .catch(() => setTrek(null))
       .finally(() => setLoading(false));
+
+    base44.entities.TrekMedia.filter({ trek_id: id, media_type: 'image' }, 'sort_order')
+      .then(setPhotos)
+      .catch(() => setPhotos([]));
   }, [id]);
 
   const handleReserve = async (e) => {
@@ -70,6 +75,26 @@ export default function TrekDetail() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         <div className="lg:col-span-2">
+          {photos.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+              {photos.map((photo) => (
+                <a
+                  key={photo.id}
+                  href={photo.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block aspect-[4/3] overflow-hidden rounded-sm border border-line"
+                >
+                  <img
+                    src={photo.url}
+                    alt={photo.caption || trek.name}
+                    className="w-full h-full object-cover hover:scale-105 transition-transform"
+                  />
+                </a>
+              ))}
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2 mb-4">
             <span className={badgeClass}>{trek.difficulty}</span>
             <span className={badgeClass}>{trek.district_name}</span>

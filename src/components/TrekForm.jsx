@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { uploadImagesToCloudinary } from '@/api/cloudinary';
+import { useUser } from '@/hooks/useUser';
 
 const empty = {
   name: '', district_name: '', season: 'summer', status: 'on-season',
@@ -9,9 +11,12 @@ const empty = {
 
 // Create/edit form for guides; loads districts for the dropdown.
 export default function TrekForm({ trek, onSaved, onCancel }) {
+  const { user } = useUser();
   const [districts, setDistricts] = useState([]);
   const [form, setForm] = useState(trek ? { ...empty, ...trek } : empty);
+  const [photoFiles, setPhotoFiles] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -29,7 +34,7 @@ export default function TrekForm({ trek, onSaved, onCancel }) {
     }
     setSaving(true);
     try {
-      const payload = {
+            const payload = {
         ...form,
         duration_days: Number(form.duration_days) || 0,
         distance_km: Number(form.distance_km) || 0,
@@ -37,16 +42,38 @@ export default function TrekForm({ trek, onSaved, onCancel }) {
         price: Number(form.price) || 0,
         slots: Number(form.slots) || 0,
       };
-      if (trek?.id) {
-        await base44.entities.Trek.update(trek.id, payload);
-      } else {
-        await base44.entities.Trek.create(payload);
+      if (!trek?.id) {
+        payload.created_by_id = user?.id;
       }
+
+      let savedTrek;
+      if (trek?.id) {
+        savedTrek = await base44.entities.Trek.update(trek.id, payload);
+      } else {
+        savedTrek = await base44.entities.Trek.create(payload);
+      }
+
+      // If the guide picked any photos, upload them now that we have a trek id.
+      if (photoFiles.length > 0) {
+        setUploading(true);
+        const urls = await uploadImagesToCloudinary(photoFiles);
+        for (let i = 0; i < urls.length; i++) {
+          await base44.entities.TrekMedia.create({
+            trek_id: savedTrek.id,
+            media_type: 'image',
+            url: urls[i],
+            sort_order: i,
+          });
+        }
+        setUploading(false);
+      }
+
       onSaved();
     } catch (err) {
       setError(err.message || 'Could not save this trek.');
     } finally {
       setSaving(false);
+      setUploading(false);
     }
   };
 
@@ -125,9 +152,25 @@ export default function TrekForm({ trek, onSaved, onCancel }) {
         <textarea rows={4} className={inputClass} value={form.description} onChange={(e) => set({ description: e.target.value })} />
       </div>
 
+      <div>
+        <label className={labelClass}>Trek photos</label>
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={(e) => setPhotoFiles(Array.from(e.target.files))}
+          className={inputClass}
+        />
+        {photoFiles.length > 0 && (
+          <p className="text-xs text-ink/60 mt-1">
+            {photoFiles.length} photo{photoFiles.length > 1 ? 's' : ''} selected — they'll upload when you save.
+          </p>
+        )}
+      </div>
+
       <div className="flex gap-3 pt-2">
         <button type="submit" disabled={saving} className="bg-pine text-paper px-4 py-2 rounded-sm text-sm hover:bg-pine-dark disabled:opacity-50">
-          {saving ? 'Saving…' : 'Save trek'}
+          {saving ? (uploading ? 'Uploading photos…' : 'Saving…') : 'Save trek'}
         </button>
         <button type="button" onClick={onCancel} className="px-4 py-2 rounded-sm text-sm text-ink/60 hover:text-ink">
           Cancel
