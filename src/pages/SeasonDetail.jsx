@@ -1,18 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { getSeason } from '@/lib/seasons';
-import Filters from '@/components/Filters';
-import TrekCard from '@/components/TrekCard';
+import { CATEGORIES } from '@/lib/categories';
+import CategoryCard from '@/components/CategoryCard';
 
 export default function SeasonDetail() {
   const { season: seasonKey } = useParams();
   const season = getSeason(seasonKey);
   const [treks, setTreks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('on-season');
-  const [filters, setFilters] = useState({ difficulty: null, maxDuration: null, maxDistance: null });
 
   useEffect(() => {
     setLoading(true);
@@ -21,28 +19,8 @@ export default function SeasonDetail() {
       .finally(() => setLoading(false));
   }, [seasonKey]);
 
-  const filtered = useMemo(() => {
-    return treks
-      .filter((t) => t.status === tab)
-      .filter((t) => !filters.difficulty || t.difficulty === filters.difficulty)
-      .filter((t) => !filters.maxDuration || t.duration_days <= filters.maxDuration)
-      .filter((t) => !filters.maxDistance || t.distance_km <= filters.maxDistance);
-  }, [treks, tab, filters]);
-
-    const DISTRICT_ORDER = ['Kinnaur', 'Chamba', 'Spiti'];
-
-  const byDistrict = useMemo(() => {
-    const groups = {};
-    filtered.forEach((t) => {
-      groups[t.district_name] = groups[t.district_name] || [];
-      groups[t.district_name].push(t);
-    });
-    const ordered = {};
-    DISTRICT_ORDER.forEach((d) => {
-      if (groups[d]) ordered[d] = groups[d];
-    });
-    return ordered;
-  }, [filtered]);
+  const countFor = (categoryKey, status) =>
+    treks.filter((t) => t.category === categoryKey && t.status === status).length;
 
   if (!season) {
     return <div className="mx-auto max-w-6xl px-6 py-20">Unknown season.</div>;
@@ -60,39 +38,22 @@ export default function SeasonDetail() {
       </div>
 
       <div className="relative z-10 bg-mist rounded-t-[24px]">
-        <div className="mx-auto max-w-6xl px-6 pt-8">
-          <div className="flex gap-2 border-b border-line">
-            <button
-              onClick={() => setTab('on-season')}
-              className={`px-4 py-2 text-sm rounded-t-sm ${tab === 'on-season' ? 'bg-amber text-paper' : 'text-ink/60 hover:text-ink'}`}
-            >
-              On season
-            </button>
-            <button
-              onClick={() => setTab('off-season')}
-              className={`px-4 py-2 text-sm rounded-t-sm ${tab === 'off-season' ? 'bg-slate2 text-paper' : 'text-ink/60 hover:text-ink'}`}
-            >
-              Off season
-            </button>
-          </div>
-
-          <Filters value={filters} onChange={setFilters} />
-        </div>
-
-        <div className="mx-auto max-w-6xl px-6 pb-20">
+        <div className="mx-auto max-w-6xl px-6 py-10">
+          <h2 className="font-display text-2xl text-ink mb-4">What are you looking for?</h2>
           {loading ? (
-            <p className="text-sm text-ink/50 py-8">Loading treks…</p>
-          ) : Object.keys(byDistrict).length === 0 ? (
-            <p className="text-sm text-ink/50 py-8">No treks match these filters yet.</p>
+            <p className="text-sm text-ink/50 py-8">Loading…</p>
           ) : (
-            Object.entries(byDistrict).map(([district, list]) => (
-              <div key={district} className="mb-8">
-                <h3 className="font-display text-xl text-ink mb-3">{district}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {list.map((trek) => <TrekCard key={trek.id} trek={trek} />)}
-                </div>
-              </div>
-            ))
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {CATEGORIES.map((category) => (
+                <CategoryCard
+                  key={category.key}
+                  season={seasonKey}
+                  category={category}
+                  onCount={countFor(category.key, 'on-season')}
+                  offCount={countFor(category.key, 'off-season')}
+                />
+              ))}
+            </div>
           )}
         </div>
       </div>

@@ -4,6 +4,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 
 import Home from '@/pages/Home';
 import SeasonDetail from '@/pages/SeasonDetail';
+import CategoryDetail from '@/pages/CategoryDetail';
 import TrekDetail from '@/pages/TrekDetail';
 import GuideDashboard from '@/pages/GuideDashboard';
 import AdminPanel from '@/pages/AdminPanel';
@@ -26,6 +27,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
           <Route path="/season/:season" element={<SeasonDetail />} />
+          <Route path="/season/:season/:category" element={<CategoryDetail />} />
           <Route path="/trek/:id" element={<TrekDetail />} />
 
           <Route element={<ProtectedRoute />}>

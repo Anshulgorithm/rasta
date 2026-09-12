@@ -5,6 +5,13 @@ import { base44 } from '@/api/base44Client';
 import { useUser } from '@/hooks/useUser';
 import { getEmbedUrl } from '@/lib/videoEmbed';
 
+const categoryLabel = {
+  peak: 'Peak',
+  expedition: 'Expedition',
+  trek: 'Trek',
+  roadtrip: 'Roadtrip',
+};
+
 export default function TrekDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -122,6 +129,7 @@ export default function TrekDetail() {
           )}
 
           <div className="flex flex-wrap gap-2 mb-4">
+            {categoryLabel[trek.category] && <span className={badgeClass}>{categoryLabel[trek.category]}</span>}
             <span className={badgeClass}>{trek.difficulty}</span>
             <span className={badgeClass}>{trek.district_name}</span>
             <span className={`${badgeClass} ${trek.status === 'on-season' ? 'bg-amber/15 text-amber-dark border-transparent' : 'bg-slate2/15 text-slate2-dark border-transparent'}`}>
@@ -131,10 +139,27 @@ export default function TrekDetail() {
 
           <h1 className="font-display text-4xl text-ink mb-2">{trek.name}</h1>
           {(trek.start_point || trek.end_point) && (
-            <p className="text-sm text-ink/50 mb-4">
+            <p className="text-sm text-ink/50 mb-2">
               {trek.start_point || '?'} → {trek.end_point || '?'}
             </p>
           )}
+
+          {trek.category === 'peak' && trek.peak_name && (
+            <p className="text-sm text-ink/60 mb-4">Peak: {trek.peak_name}</p>
+          )}
+          {trek.category === 'expedition' && (
+            <p className="text-sm text-ink/60 mb-4">
+              {trek.max_altitude_m ? `Max altitude: ${trek.max_altitude_m}m` : ''}
+              {trek.max_altitude_m && (trek.permit_required !== null && trek.permit_required !== undefined) ? ' · ' : ''}
+              {trek.permit_required !== null && trek.permit_required !== undefined
+                ? (trek.permit_required ? 'Permit required' : 'No permit required')
+                : ''}
+            </p>
+          )}
+          {trek.category === 'roadtrip' && trek.vehicle_type && (
+            <p className="text-sm text-ink/60 mb-4">Vehicle: {trek.vehicle_type}</p>
+          )}
+
           <p className="text-ink/70 leading-relaxed max-w-2xl">{trek.description}</p>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 max-w-xl">

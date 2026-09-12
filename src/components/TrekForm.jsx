@@ -5,9 +5,11 @@ import { useUser } from '@/hooks/useUser';
 import { getEmbedUrl } from '@/lib/videoEmbed';
 
 const empty = {
+  category: '',
   name: '', district_name: '', season: 'summer', status: 'on-season',
   difficulty: 'moderate', duration_days: '', distance_km: '', elevation_m: '',
   price: '', slots: '', description: '', image_url: '', start_point: '', end_point: '',
+  peak_name: '', max_altitude_m: '', permit_required: false, vehicle_type: '',
 };
 
 // Create/edit form for guides; loads districts for the dropdown.
@@ -22,7 +24,7 @@ export default function TrekForm({ trek, onSaved, onCancel }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    base44.entities.District.list('name', 50).then(setDistricts);
+    base44.entities.District.list('sort_order', 50).then(setDistricts);
   }, []);
 
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
@@ -30,6 +32,10 @@ export default function TrekForm({ trek, onSaved, onCancel }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!form.category) {
+      setError('Please choose what you are creating: Peak, Expedition, Trek, or Roadtrip.');
+      return;
+    }
     if (!form.name || !form.district_name || !form.season || !form.status) {
       setError('Name, district, season and status are required.');
       return;
@@ -52,6 +58,12 @@ export default function TrekForm({ trek, onSaved, onCancel }) {
         elevation_m: Number(form.elevation_m) || 0,
         price: Number(form.price) || 0,
         slots: Number(form.slots) || 0,
+        // Only keep the fields that actually belong to the chosen category —
+        // clears out anything left over from switching categories mid-edit.
+        peak_name: form.category === 'peak' ? form.peak_name || null : null,
+        max_altitude_m: form.category === 'expedition' ? (Number(form.max_altitude_m) || null) : null,
+        permit_required: form.category === 'expedition' ? !!form.permit_required : null,
+        vehicle_type: form.category === 'roadtrip' ? form.vehicle_type || null : null,
       };
       if (!trek?.id) {
         payload.created_by_id = user?.id;
@@ -108,6 +120,17 @@ export default function TrekForm({ trek, onSaved, onCancel }) {
       <h3 className="font-display text-xl">{trek?.id ? 'Edit trek' : 'New trek'}</h3>
 
       {error && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-sm px-3 py-2">{error}</p>}
+
+      <div>
+        <label className={labelClass}>What are you creating?</label>
+        <select className={inputClass} value={form.category} onChange={(e) => set({ category: e.target.value })}>
+          <option value="">Select type</option>
+          <option value="peak">Peak</option>
+          <option value="expedition">Expedition</option>
+          <option value="trek">Trek</option>
+          <option value="roadtrip">Roadtrip</option>
+        </select>
+      </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -178,6 +201,44 @@ export default function TrekForm({ trek, onSaved, onCancel }) {
           <input type="number" className={inputClass} value={form.slots} onChange={(e) => set({ slots: e.target.value })} />
         </div>
       </div>
+
+      {form.category === 'peak' && (
+        <div className="grid grid-cols-2 gap-4 border-t border-line pt-4">
+          <div>
+            <label className={labelClass}>Peak name</label>
+            <input className={inputClass} value={form.peak_name} onChange={(e) => set({ peak_name: e.target.value })} placeholder="e.g. Mount Kailash" />
+          </div>
+        </div>
+      )}
+
+      {form.category === 'expedition' && (
+        <div className="grid grid-cols-2 gap-4 border-t border-line pt-4">
+          <div>
+            <label className={labelClass}>Max altitude reached (m)</label>
+            <input type="number" className={inputClass} value={form.max_altitude_m} onChange={(e) => set({ max_altitude_m: e.target.value })} />
+          </div>
+          <div>
+            <label className={labelClass}>Permit required?</label>
+            <select
+              className={inputClass}
+              value={form.permit_required ? 'yes' : 'no'}
+              onChange={(e) => set({ permit_required: e.target.value === 'yes' })}
+            >
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+        </div>
+      )}
+
+      {form.category === 'roadtrip' && (
+        <div className="grid grid-cols-2 gap-4 border-t border-line pt-4">
+          <div>
+            <label className={labelClass}>Vehicle type</label>
+            <input className={inputClass} value={form.vehicle_type} onChange={(e) => set({ vehicle_type: e.target.value })} placeholder="e.g. Car, Bike" />
+          </div>
+        </div>
+      )}
 
       <div>
         <label className={labelClass}>Description</label>

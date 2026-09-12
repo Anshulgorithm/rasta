@@ -13,6 +13,13 @@ const difficultyLabel = {
   difficult: 'Difficult',
 };
 
+const categoryLabel = {
+  peak: 'Peak',
+  expedition: 'Expedition',
+  trek: 'Trek',
+  roadtrip: 'Roadtrip',
+};
+
 // Compact trek card: image placeholder, name, difficulty, stats
 export default function TrekCard({ trek }) {
   return (
@@ -25,13 +32,20 @@ export default function TrekCard({ trek }) {
           <h4 className="font-display text-lg text-ink">{trek.name}</h4>
           <p className="text-xs text-ink/50 mt-0.5">{trek.district_name}</p>
         </div>
-        <span
-          className={`shrink-0 rounded-sm px-2 py-0.5 text-xs ${
-            trek.status === 'on-season' ? 'bg-amber/15 text-amber-dark' : 'bg-slate2/15 text-slate2-dark'
-          }`}
-        >
-          {trek.status === 'on-season' ? 'On season' : 'Off season'}
-        </span>
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <span
+            className={`rounded-sm px-2 py-0.5 text-xs ${
+              trek.status === 'on-season' ? 'bg-amber/15 text-amber-dark' : 'bg-slate2/15 text-slate2-dark'
+            }`}
+          >
+            {trek.status === 'on-season' ? 'On season' : 'Off season'}
+          </span>
+          {categoryLabel[trek.category] && (
+            <span className="rounded-sm px-2 py-0.5 text-xs border border-line text-ink/60">
+              {categoryLabel[trek.category]}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="mt-3 flex items-center gap-4 text-xs text-ink/60">
