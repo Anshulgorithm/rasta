@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { uploadImagesToCloudinary } from '@/api/cloudinary';
 import { useUser } from '@/hooks/useUser';
+import { getEmbedUrl } from '@/lib/videoEmbed';
 
 const empty = {
   name: '', district_name: '', season: 'summer', status: 'on-season',
   difficulty: 'moderate', duration_days: '', distance_km: '', elevation_m: '',
-  price: '', slots: '', description: '', image_url: '',
+  price: '', slots: '', description: '', image_url: '', start_point: '', end_point: '',
 };
 
 // Create/edit form for guides; loads districts for the dropdown.
@@ -15,6 +16,7 @@ export default function TrekForm({ trek, onSaved, onCancel }) {
   const [districts, setDistricts] = useState([]);
   const [form, setForm] = useState(trek ? { ...empty, ...trek } : empty);
   const [photoFiles, setPhotoFiles] = useState([]);
+  const [videoLinksText, setVideoLinksText] = useState('');
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -32,9 +34,18 @@ export default function TrekForm({ trek, onSaved, onCancel }) {
       setError('Name, district, season and status are required.');
       return;
     }
+
+    // Split the video links textarea into one link per line, ignoring blank lines.
+    const videoLinks = videoLinksText.split('\n').map((l) => l.trim()).filter(Boolean);
+    const invalidLinks = videoLinks.filter((link) => !getEmbedUrl(link));
+    if (invalidLinks.length > 0) {
+      setError(`These don't look like YouTube or Vimeo links: ${invalidLinks.join(', ')}`);
+      return;
+    }
+
     setSaving(true);
     try {
-            const payload = {
+      const payload = {
         ...form,
         duration_days: Number(form.duration_days) || 0,
         distance_km: Number(form.distance_km) || 0,
@@ -68,6 +79,18 @@ export default function TrekForm({ trek, onSaved, onCancel }) {
         setUploading(false);
       }
 
+      // Save any video links the same way, as their own trek_media rows.
+      if (videoLinks.length > 0) {
+        for (let i = 0; i < videoLinks.length; i++) {
+          await base44.entities.TrekMedia.create({
+            trek_id: savedTrek.id,
+            media_type: 'video',
+            url: videoLinks[i],
+            sort_order: i,
+          });
+        }
+      }
+
       onSaved();
     } catch (err) {
       setError(err.message || 'Could not save this trek.');
@@ -97,6 +120,15 @@ export default function TrekForm({ trek, onSaved, onCancel }) {
             <option value="">Select district</option>
             {districts.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
           </select>
+        </div>
+
+        <div>
+          <label className={labelClass}>Start point</label>
+          <input className={inputClass} value={form.start_point} onChange={(e) => set({ start_point: e.target.value })} />
+        </div>
+        <div>
+          <label className={labelClass}>End point</label>
+          <input className={inputClass} value={form.end_point} onChange={(e) => set({ end_point: e.target.value })} />
         </div>
 
         <div>
@@ -166,6 +198,17 @@ export default function TrekForm({ trek, onSaved, onCancel }) {
             {photoFiles.length} photo{photoFiles.length > 1 ? 's' : ''} selected — they'll upload when you save.
           </p>
         )}
+      </div>
+
+      <div>
+        <label className={labelClass}>Video links (YouTube or Vimeo — one per line)</label>
+        <textarea
+          rows={3}
+          className={inputClass}
+          value={videoLinksText}
+          onChange={(e) => setVideoLinksText(e.target.value)}
+          placeholder={'https://youtube.com/watch?v=...\nhttps://vimeo.com/...'}
+        />
       </div>
 
       <div className="flex gap-3 pt-2">

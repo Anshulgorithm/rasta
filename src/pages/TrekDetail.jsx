@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ChevronLeft, Mountain, Clock, Route, Users } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useUser } from '@/hooks/useUser';
+import { getEmbedUrl } from '@/lib/videoEmbed';
 
 export default function TrekDetail() {
   const { id } = useParams();
@@ -10,6 +11,7 @@ export default function TrekDetail() {
   const { user, loading: userLoading } = useUser();
   const [trek, setTrek] = useState(null);
   const [photos, setPhotos] = useState([]);
+  const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [date, setDate] = useState('');
   const [groupSize, setGroupSize] = useState(1);
@@ -26,6 +28,10 @@ export default function TrekDetail() {
     base44.entities.TrekMedia.filter({ trek_id: id, media_type: 'image' }, 'sort_order')
       .then(setPhotos)
       .catch(() => setPhotos([]));
+
+    base44.entities.TrekMedia.filter({ trek_id: id, media_type: 'video' }, 'sort_order')
+      .then(setVideos)
+      .catch(() => setVideos([]));
   }, [id]);
 
   const handleReserve = async (e) => {
@@ -95,6 +101,26 @@ export default function TrekDetail() {
             </div>
           )}
 
+          {videos.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+              {videos.map((video) => {
+                const embedUrl = getEmbedUrl(video.url);
+                if (!embedUrl) return null;
+                return (
+                  <div key={video.id} className="aspect-video overflow-hidden rounded-sm border border-line">
+                    <iframe
+                      src={embedUrl}
+                      title={video.caption || `${trek.name} video`}
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2 mb-4">
             <span className={badgeClass}>{trek.difficulty}</span>
             <span className={badgeClass}>{trek.district_name}</span>
@@ -103,7 +129,12 @@ export default function TrekDetail() {
             </span>
           </div>
 
-          <h1 className="font-display text-4xl text-ink mb-4">{trek.name}</h1>
+          <h1 className="font-display text-4xl text-ink mb-2">{trek.name}</h1>
+          {(trek.start_point || trek.end_point) && (
+            <p className="text-sm text-ink/50 mb-4">
+              {trek.start_point || '?'} → {trek.end_point || '?'}
+            </p>
+          )}
           <p className="text-ink/70 leading-relaxed max-w-2xl">{trek.description}</p>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 max-w-xl">
