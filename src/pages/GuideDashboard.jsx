@@ -41,8 +41,16 @@ export default function GuideDashboard() {
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this trek listing?')) return;
-    await base44.entities.Trek.delete(id);
-    loadTreks(user.id);
+    try {
+      await base44.entities.Trek.delete(id);
+      loadTreks(user.id);
+    } catch (err) {
+      if (err.message?.includes('bookings_trek_id_fkey')) {
+        alert('This trek can\'t be deleted because it already has one or more bookings against it. Cancel or resolve those bookings first, then try again.');
+      } else {
+        alert('Could not delete this trek: ' + (err.message || 'unknown error.'));
+      }
+    }
   };
 
   const handleSaved = () => {
