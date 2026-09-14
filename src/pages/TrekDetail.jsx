@@ -63,6 +63,11 @@ export default function TrekDetail() {
       setError('Add a phone number so your guide can reach you.');
       return;
     }
+    const size = Number(groupSize) || 1;
+    if (size > (trek.slots || 0)) {
+      setError(`Only ${trek.slots || 0} slot(s) left on this trek. Reduce your group size or choose another trek.`);
+      return;
+    }
 
     setBooking(true);
     try {
@@ -212,6 +217,7 @@ export default function TrekDetail() {
               />
 
               <label className="text-xs text-ink/60 mb-1 block">Group size</label>
+              <p className="text-xs text-ink/40 mb-1">{trek.slots || 0} slot{trek.slots === 1 ? '' : 's'} available</p>
               <input
                 type="number"
                 min="1"
