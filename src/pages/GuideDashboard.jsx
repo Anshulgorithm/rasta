@@ -11,6 +11,8 @@ export default function GuideDashboard() {
   const [editing, setEditing] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [applying, setApplying] = useState(false);
+  const [applyPhone, setApplyPhone] = useState('');
+  const [applyError, setApplyError] = useState('');
 
   const loadTreks = async (uid) => {
     setLoading(true);
@@ -26,8 +28,13 @@ export default function GuideDashboard() {
   }, [user]);
 
   const handleApply = async () => {
+    if (!applyPhone.trim()) {
+      setApplyError('Add a phone number so tourists can reach you once you\'re approved.');
+      return;
+    }
+    setApplyError('');
     setApplying(true);
-    await base44.auth.updateMe({ requested_role: 'guide' });
+    await base44.auth.updateMe({ phone_number: applyPhone.trim(), requested_role: 'guide' });
     await refresh();
     setApplying(false);
   };
@@ -63,6 +70,18 @@ export default function GuideDashboard() {
               List your own trails, manage bookings, and reach tourists planning trips across Himachal.
               An admin reviews every request before it's approved.
             </p>
+
+            {applyError && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-sm px-3 py-2 mb-3 max-w-xs mx-auto">{applyError}</p>}
+
+            <label className="text-xs text-ink/60 mb-1 block text-left max-w-xs mx-auto">Your phone number</label>
+            <input
+              type="tel"
+              placeholder="e.g. 98765 43210"
+              value={applyPhone}
+              onChange={(e) => setApplyPhone(e.target.value)}
+              className="w-full max-w-xs border border-line rounded-sm px-3 py-2 text-sm mb-4"
+            />
+
             <button
               onClick={handleApply}
               disabled={applying}

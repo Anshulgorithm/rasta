@@ -15,13 +15,14 @@ const categoryLabel = {
 export default function TrekDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, loading: userLoading } = useUser();
+  const { user, loading: userLoading, refresh } = useUser();
   const [trek, setTrek] = useState(null);
   const [photos, setPhotos] = useState([]);
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [date, setDate] = useState('');
   const [groupSize, setGroupSize] = useState(1);
+  const [phone, setPhone] = useState('');
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState('');
   const [confirmed, setConfirmed] = useState(false);
@@ -41,6 +42,10 @@ export default function TrekDetail() {
       .catch(() => setVideos([]));
   }, [id]);
 
+  useEffect(() => {
+    if (user?.phone_number) setPhone(user.phone_number);
+  }, [user]);
+
   const handleReserve = async (e) => {
     e.preventDefault();
     setError('');
@@ -54,9 +59,18 @@ export default function TrekDetail() {
       setError('Pick a date for your trek.');
       return;
     }
+    if (!phone.trim()) {
+      setError('Add a phone number so your guide can reach you.');
+      return;
+    }
 
     setBooking(true);
     try {
+      if (phone.trim() !== (user.phone_number || '')) {
+        await base44.auth.updateMe({ phone_number: phone.trim() });
+        await refresh();
+      }
+
       await base44.entities.Booking.create({
         trek_id: trek.id,
         trek_name: trek.name,
@@ -66,6 +80,7 @@ export default function TrekDetail() {
         group_size: Number(groupSize) || 1,
         status: 'reserved',
         payment_status: 'pending',
+        guide_decision: 'pending',
       });
       setConfirmed(true);
     } catch (err) {
@@ -202,8 +217,20 @@ export default function TrekDetail() {
                 min="1"
                 value={groupSize}
                 onChange={(e) => setGroupSize(e.target.value)}
+                className="w-full border border-line rounded-sm px-3 py-2 text-sm mb-3"
+              />
+
+              <label className="text-xs text-ink/60 mb-1 block">Your phone number</label>
+              <input
+                type="tel"
+                placeholder="e.g. 98765 43210"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
                 className="w-full border border-line rounded-sm px-3 py-2 text-sm mb-4"
               />
+              <p className="text-xs text-ink/40 -mt-3 mb-4">
+                Shared with your guide only after they accept your booking.
+              </p>
 
               <button
                 type="submit"
