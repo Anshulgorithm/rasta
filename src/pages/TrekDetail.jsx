@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ChevronLeft, Mountain, Clock, Route, Users } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { supabase } from '@/api/supabaseClient';
 import { useUser } from '@/hooks/useUser';
 import { getEmbedUrl } from '@/lib/videoEmbed';
 
@@ -63,9 +64,9 @@ export default function TrekDetail() {
       setError('Add a phone number so your guide can reach you.');
       return;
     }
-    const size = Number(groupSize) || 1;
-    if (size > (trek.slots || 0)) {
-      setError(`Only ${trek.slots || 0} slot(s) left on this trek. Reduce your group size or choose another trek.`);
+    const size = parseInt(groupSize, 10);
+    if (!Number.isInteger(size) || size < 1) {
+      setError('Group size must be a whole number of at least 1.');
       return;
     }
 
@@ -76,19 +77,20 @@ export default function TrekDetail() {
         await refresh();
       }
 
-      await base44.entities.Booking.create({
-        trek_id: trek.id,
-        trek_name: trek.name,
-        tourist_id: user.id,
-        tourist_name: user.full_name,
-        date,
-        group_size: Number(groupSize) || 1,
-        status: 'reserved',
-        payment_status: 'pending',
-        guide_decision: 'pending',
+      // Atomic on the server: locks the (trek, date) row, checks real
+      // remaining capacity, and only then creates the booking — so two
+      // tourists racing for the last slot can't both get confirmed.
+      const { error: rpcError } = await supabase.rpc('reserve_trek', {
+        p_trek_id: trek.id,
+        p_date: date,
+        p_group_size: size,
       });
+
+      if (rpcError) throw new Error(rpcError.message);
       setConfirmed(true);
     } catch (err) {
+      // Postgres RAISE EXCEPTION messages arrive as-is and are already
+      // written to be shown to the tourist (e.g. "Only 2 seat(s) left...").
       setError(err.message || 'Could not reserve this trek.');
     } finally {
       setBooking(false);
@@ -211,6 +213,7 @@ export default function TrekDetail() {
               <label className="text-xs text-ink/60 mb-1 block">Trek date</label>
               <input
                 type="date"
+                min={new Date().toISOString().slice(0, 10)}
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 className="w-full border border-line rounded-sm px-3 py-2 text-sm mb-3"

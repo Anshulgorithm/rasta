@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, Compass, Check, X, Phone, Mail } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { supabase } from '@/api/supabaseClient';
 import { useUser } from '@/hooks/useUser';
 import TrekForm from '@/components/TrekForm';
 
@@ -93,15 +94,15 @@ export default function GuideDashboard() {
     const trek = treks.find((t) => t.id === booking.trek_id);
     if (!trek) return;
 
-    if (booking.group_size > (trek.slots || 0)) {
-      alert(`Can't accept — only ${trek.slots || 0} slot(s) left on this trek, but this booking needs ${booking.group_size}.`);
-      return;
-    }
-
     setActingId(booking.id);
     try {
+      // Capacity for this booking was already reserved atomically when
+      // the tourist booked (reserve_trek). Accepting just confirms it —
+      // it must NOT touch trek.slots again, or seats get double-counted.
+      // Note: status stays 'reserved' here — the bookings_status_check
+      // constraint doesn't allow 'confirmed' yet. Cleaning up the status
+      // lifecycle properly is a Phase 3 item (audit §3.12).
       await base44.entities.Booking.update(booking.id, { guide_decision: 'accepted' });
-      await base44.entities.Trek.update(trek.id, { slots: trek.slots - booking.group_size });
       const mine = await loadTreks(user.id);
       await loadBookings(mine);
     } catch (err) {
@@ -118,6 +119,11 @@ export default function GuideDashboard() {
     }
     setActingId(booking.id);
     try {
+      const { error: releaseError } = await supabase.rpc('release_trek_seats', {
+        p_booking_id: booking.id,
+      });
+      if (releaseError) throw new Error(releaseError.message);
+
       await base44.entities.Booking.update(booking.id, {
         guide_decision: 'rejected',
         guide_rejection_reason: rejectReason.trim(),
