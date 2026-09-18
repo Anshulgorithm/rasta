@@ -1,16 +1,35 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Mountain } from 'lucide-react';
+import { supabase } from '@/api/supabaseClient';
 
-// Boilerplate stub — in a real deployment this would trigger base44's
-// built-in password-reset email flow.
 export default function ForgotPassword() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
-  const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSent(true);
+    setError('');
+    setLoading(true);
+
+    // No redirectTo needed here — the email template now sends a 6-digit
+    // code ({{ .Token }}) instead of a clickable link, so there's no
+    // browser redirect step, and no risk of an email scanner "using up"
+    // the code before the person clicks it themselves.
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim());
+
+    setLoading(false);
+
+    if (resetError) {
+      setError('Something went wrong sending the reset code. Please try again in a moment.');
+      return;
+    }
+
+    // Carry the email forward so ResetPassword.jsx doesn't have to ask
+    // for it again — verifyOtp needs both the email and the code.
+    navigate('/reset-password', { state: { email: email.trim() } });
   };
 
   return (
@@ -22,27 +41,26 @@ export default function ForgotPassword() {
 
       <h1 className="font-display text-2xl text-ink text-center mb-6">Reset your password</h1>
 
-      {sent ? (
-        <p className="text-sm text-ink/60 text-center">
-          If an account exists for {email}, a reset link is on its way.
-        </p>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-xs text-ink/60 mb-1 block">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-line rounded-sm px-3 py-2 text-sm"
-            />
-          </div>
-          <button type="submit" className="w-full bg-pine text-paper py-2.5 rounded-sm text-sm hover:bg-pine-dark">
-            Send reset link
-          </button>
-        </form>
-      )}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="text-xs text-ink/60 mb-1 block">Email</label>
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full border border-line rounded-sm px-3 py-2 text-sm"
+          />
+        </div>
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-pine text-paper py-2.5 rounded-sm text-sm hover:bg-pine-dark disabled:opacity-60"
+        >
+          {loading ? 'Sending…' : 'Send reset code'}
+        </button>
+      </form>
 
       <p className="text-sm text-ink/50 text-center mt-6">
         <Link to="/login" className="text-pine hover:underline">Back to log in</Link>
