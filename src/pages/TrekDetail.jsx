@@ -100,6 +100,9 @@ export default function TrekDetail() {
   if (loading) return <div className="mx-auto max-w-6xl px-6 py-20 text-ink/50">Loading…</div>;
   if (!trek) return <div className="mx-auto max-w-6xl px-6 py-20">Trek not found.</div>;
 
+  const isOffSeason = trek.status !== 'on-season';
+  const effectivePrice = isOffSeason ? trek.off_season_price : trek.price;
+
   const badgeClass = 'rounded-sm px-2.5 py-1 text-xs border border-line text-ink/70';
 
   return (
@@ -203,10 +206,30 @@ export default function TrekDetail() {
                 View my bookings
               </Link>
             </div>
+          ) : isOffSeason && trek.off_season_price == null ? (
+            <div>
+              <p className="text-sm text-ink/50">Price per person</p>
+              <p className="font-display text-3xl text-ink mb-4">₹{trek.price?.toLocaleString('en-IN')}</p>
+              <div className="bg-slate2/10 border border-slate2/30 rounded-sm px-3 py-3">
+                <p className="text-sm text-ink/70 font-medium mb-1">This trek is currently off-season</p>
+                <p className="text-xs text-ink/50">
+                  The guide hasn't set off-season pricing for this trek yet, so it isn't bookable right now. Check back later or browse other on-season treks.
+                </p>
+              </div>
+              <Link to={`/season/${trek.season}`} className="mt-3 inline-block text-sm text-pine underline underline-offset-2">
+                Browse on-season treks
+              </Link>
+            </div>
           ) : (
             <form onSubmit={handleReserve}>
               <p className="text-sm text-ink/50">Price per person</p>
-              <p className="font-display text-3xl text-ink mb-4">₹{trek.price?.toLocaleString('en-IN')}</p>
+              <p className="font-display text-3xl text-ink mb-1">₹{effectivePrice?.toLocaleString('en-IN')}</p>
+              {isOffSeason && (
+                <p className="text-xs text-amber-dark bg-amber/15 inline-block rounded-sm px-2 py-0.5 mb-3">
+                  Off-season pricing applies
+                </p>
+              )}
+              {!isOffSeason && <div className="mb-4" />}
 
               {error && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-sm px-3 py-2 mb-3">{error}</p>}
 

@@ -8,7 +8,7 @@ const empty = {
   category: '',
   name: '', district_name: '', season: 'summer', status: 'on-season',
   difficulty: 'moderate', duration_days: '', distance_km: '', elevation_m: '',
-  price: '', slots: '', description: '', image_url: '', start_point: '', end_point: '',
+  price: '', off_season_price: '', slots: '', description: '', image_url: '', start_point: '', end_point: '',
   peak_name: '', max_altitude_m: '', permit_required: false, vehicle_type: '',
 };
 
@@ -57,6 +57,7 @@ export default function TrekForm({ trek, onSaved, onCancel }) {
         distance_km: Number(form.distance_km) || 0,
         elevation_m: Number(form.elevation_m) || 0,
         price: Number(form.price) || 0,
+        off_season_price: form.off_season_price === '' ? null : Number(form.off_season_price),
         slots: Number(form.slots) || 0,
         // Only keep the fields that actually belong to the chosen category —
         // clears out anything left over from switching categories mid-edit.
@@ -181,6 +182,19 @@ export default function TrekForm({ trek, onSaved, onCancel }) {
         <div>
           <label className={labelClass}>Price per person (₹)</label>
           <input type="number" className={inputClass} value={form.price} onChange={(e) => set({ price: e.target.value })} />
+        </div>
+        <div>
+          <label className={labelClass}>Off-season price per person (₹)</label>
+          <input
+            type="number"
+            className={inputClass}
+            value={form.off_season_price}
+            onChange={(e) => set({ off_season_price: e.target.value })}
+            placeholder="Leave blank to keep this trek unbookable off-season"
+          />
+          <p className="text-xs text-ink/40 mt-1">
+            Charged instead of the normal price when this trek's status is set to Off season. If left blank, the trek stays unbookable while off-season.
+          </p>
         </div>
 
         <div>
