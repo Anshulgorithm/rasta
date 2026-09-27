@@ -99,7 +99,17 @@ export default function Bookings() {
                 <Link to={`/trek/${b.trek_id}`} className="flex items-center justify-between hover:bg-mist -mx-2 px-2 py-1 rounded-sm">
                   <div>
                     <p className="font-medium text-ink">{b.trek_name}</p>
-                    <p className="text-xs text-ink/50">{b.date} · {b.group_size} {b.group_size === 1 ? 'person' : 'people'}</p>
+                    <p className="text-xs text-ink/50">
+                      {b.date} · {b.group_size} {b.group_size === 1 ? 'person' : 'people'}
+                      {b.price_per_person != null && (
+                        <>
+                          {' · '}
+                          {b.group_size > 1
+                            ? `₹${(b.price_per_person * b.group_size).toLocaleString('en-IN')} total (₹${b.price_per_person.toLocaleString('en-IN')}/person)`
+                            : `₹${b.price_per_person.toLocaleString('en-IN')}`}
+                        </>
+                      )}
+                    </p>
                   </div>
                   <span className={`text-xs rounded-sm px-2.5 py-1 ${isCancelled ? 'bg-ink/10 text-ink/50' : decision.className}`}>
                     {isCancelled ? 'Cancelled' : decision.text}

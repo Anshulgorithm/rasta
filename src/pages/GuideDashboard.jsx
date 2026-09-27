@@ -260,6 +260,14 @@ export default function GuideDashboard() {
                   <p className="font-medium text-ink">{b.trek_name}</p>
                   <p className="text-xs text-ink/50">
                     {b.tourist_name} · {b.date} · {b.group_size} {b.group_size === 1 ? 'person' : 'people'}
+                    {b.price_per_person != null && (
+                      <>
+                        {' · '}
+                        {b.group_size > 1
+                          ? `₹${(b.price_per_person * b.group_size).toLocaleString('en-IN')} total (₹${b.price_per_person.toLocaleString('en-IN')}/person)`
+                          : `₹${b.price_per_person.toLocaleString('en-IN')}`}
+                      </>
+                    )}
                   </p>
                 </div>
 
