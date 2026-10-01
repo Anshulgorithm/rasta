@@ -32,7 +32,11 @@ export default function GuideDashboard() {
     setBookingsLoading(true);
     const trekIds = new Set(myTreks.map((t) => t.id));
     const all = await base44.entities.Booking.list('-created_date', 500);
-    const mine = all.filter((b) => trekIds.has(b.trek_id));
+    // Exclude cancelled bookings entirely — otherwise a booking the
+    // tourist cancelled before you'd acted on it still shows up here
+    // with live Accept/Reject buttons, and rejecting it would release
+    // seats a second time (they were already freed on cancellation).
+    const mine = all.filter((b) => trekIds.has(b.trek_id) && b.status !== 'cancelled');
 
     const withContact = await Promise.all(
       mine.map(async (b) => {

@@ -52,14 +52,13 @@ export default function Bookings() {
     setCancelError('');
     setCancellingId(booking.id);
     try {
-      const { error: releaseError } = await supabase.rpc('release_trek_seats', {
+      // cancel_booking() does both the seat release and the status
+      // update atomically on the server, and refuses to run twice on
+      // the same booking — see cancel_booking_fix.sql.
+      const { data: updated, error: cancelError } = await supabase.rpc('cancel_booking', {
         p_booking_id: booking.id,
       });
-      if (releaseError) throw new Error(releaseError.message);
-
-      const updated = await base44.entities.Booking.update(booking.id, {
-        status: 'cancelled',
-      });
+      if (cancelError) throw new Error(cancelError.message);
 
       setBookings((prev) => prev.map((b) => (b.id === booking.id ? { ...b, ...updated } : b)));
       setConfirmingId(null);
